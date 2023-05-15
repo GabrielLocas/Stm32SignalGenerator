@@ -23,6 +23,7 @@
 /* USER CODE BEGIN Includes */
 #include "../Inc/init.h"
 #include "../Inc/waves.h"
+#include "stm32f4xx_it.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -45,11 +46,15 @@ DAC_HandleTypeDef hdac;
 TIM_HandleTypeDef htim6;
 DMA_HandleTypeDef hdma_tim6_up;
 
+UART_HandleTypeDef huart2;
+
 /* USER CODE BEGIN PV */
 extern unsigned int sine_val[N_SAMPLES];
 extern unsigned int saw_val[N_SAMPLES];
 extern unsigned int tri_val[N_SAMPLES];
 extern unsigned int square_val[N_SAMPLES];
+uint8_t Rx_data[3] = {0};  //  creating a buffer of 10 bytes
+uint8_t packet[] = "trop facile!";
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -58,6 +63,7 @@ static void MX_GPIO_Init(void);
 static void MX_DMA_Init(void);
 static void MX_DAC_Init(void);
 static void MX_TIM6_Init(void);
+static void MX_USART2_UART_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -98,10 +104,13 @@ int main(void)
   MX_DMA_Init();
   MX_DAC_Init();
   MX_TIM6_Init();
+  MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
   HAL_DAC_Start(&hdac, DAC_CHANNEL_1);
   HAL_TIM_Base_Start(&htim6);
   init_waves();
+
+  HAL_UART_Receive_IT (&huart2, Rx_data, 10);
 
   //HAL_DAC_Start_DMA(hdac, Channel, pData, Length, Alignment)
   //HAL_DAC_Start_DMA(&hdac, DAC1_CHANNEL_1, tri_val, N_SAMPLES*2, DAC_ALIGN_12B_R);
@@ -113,11 +122,17 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-	  for(int i = 0; i < N_SAMPLES; ++i){
-		  //HAL_Delay(1);
+
+    /* USER CODE BEGIN 3 */
+    //HAL_Delay(1000);
+    //HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_14);
+    if(Rx_data[0] == 'a')
+    	HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_15);
+    for(int i = 0; i < N_SAMPLES; ++i){
+		  HAL_Delay(10);
 		  HAL_DAC_SetValue(&hdac, DAC_CHANNEL_1, DAC_ALIGN_12B_R, sine_val[i]);
 	  }
-    /* USER CODE BEGIN 3 */
+    
   }
   /* USER CODE END 3 */
 }
@@ -160,7 +175,7 @@ void SystemClock_Config(void)
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
-  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
   if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
   {
@@ -247,6 +262,39 @@ static void MX_TIM6_Init(void)
 }
 
 /**
+  * @brief USART2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART2_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART2_Init 0 */
+
+  /* USER CODE END USART2_Init 0 */
+
+  /* USER CODE BEGIN USART2_Init 1 */
+
+  /* USER CODE END USART2_Init 1 */
+  huart2.Instance = USART2;
+  huart2.Init.BaudRate = 9600;
+  huart2.Init.WordLength = UART_WORDLENGTH_8B;
+  huart2.Init.StopBits = UART_STOPBITS_1;
+  huart2.Init.Parity = UART_PARITY_NONE;
+  huart2.Init.Mode = UART_MODE_TX_RX;
+  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart2.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART2_Init 2 */
+
+  /* USER CODE END USART2_Init 2 */
+
+}
+
+/**
   * Enable DMA controller clock
   */
 static void MX_DMA_Init(void)
@@ -269,9 +317,22 @@ static void MX_DMA_Init(void)
   */
 static void MX_GPIO_Init(void)
 {
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
 
   /* GPIO Ports Clock Enable */
+  __HAL_RCC_GPIOH_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
+  __HAL_RCC_GPIOD_CLK_ENABLE();
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOD, LED_ROUGE_Pin|LED_BLEU_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pins : LED_ROUGE_Pin LED_BLEU_Pin */
+  GPIO_InitStruct.Pin = LED_ROUGE_Pin|LED_BLEU_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
 }
 
