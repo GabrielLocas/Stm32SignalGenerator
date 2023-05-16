@@ -42,9 +42,9 @@
 
 /* Private variables ---------------------------------------------------------*/
 DAC_HandleTypeDef hdac;
+DMA_HandleTypeDef hdma_dac1;
 
-TIM_HandleTypeDef htim6;
-DMA_HandleTypeDef hdma_tim6_up;
+TIM_HandleTypeDef htim2;
 
 UART_HandleTypeDef huart2;
 
@@ -53,8 +53,9 @@ extern unsigned int sine_val[N_SAMPLES];
 extern unsigned int saw_val[N_SAMPLES];
 extern unsigned int tri_val[N_SAMPLES];
 extern unsigned int square_val[N_SAMPLES];
-uint8_t Rx_data[3] = {0};  //  creating a buffer of 10 bytes
+uint8_t Rx_data[8] = {0};  //  creating a buffer of 8 bytes
 uint8_t packet[] = "trop facile!";
+extern unsigned int frequence; // (Hz)
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -62,8 +63,8 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_DMA_Init(void);
 static void MX_DAC_Init(void);
-static void MX_TIM6_Init(void);
 static void MX_USART2_UART_Init(void);
+static void MX_TIM2_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -103,17 +104,22 @@ int main(void)
   MX_GPIO_Init();
   MX_DMA_Init();
   MX_DAC_Init();
-  MX_TIM6_Init();
   MX_USART2_UART_Init();
+  MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
-  HAL_DAC_Start(&hdac, DAC_CHANNEL_1);
-  HAL_TIM_Base_Start(&htim6);
+  //Activate DAC
+  //HAL_DAC_Start(&hdac, DAC_CHANNEL_1);
+  //HAL_DAC_Start_DMA(hdac, Channel, pData, Length, Alignment)
+  HAL_DAC_Start_DMA(&hdac, DAC1_CHANNEL_1, (uint32_t*)tri_val, N_SAMPLES, DAC_ALIGN_12B_R);
+
+  //Activate timer for signal generator
+  HAL_TIM_Base_Start(&htim2);
+
+  //Calculate waveforms
   init_waves();
 
+  //Activate UART RX
   HAL_UART_Receive_IT (&huart2, Rx_data, 10);
-
-  //HAL_DAC_Start_DMA(hdac, Channel, pData, Length, Alignment)
-  //HAL_DAC_Start_DMA(&hdac, DAC1_CHANNEL_1, tri_val, N_SAMPLES*2, DAC_ALIGN_12B_R);
 
   /* USER CODE END 2 */
 
@@ -124,14 +130,15 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    //HAL_Delay(1000);
-    //HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_14);
+    HAL_Delay(1000);
+    HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_14);
     if(Rx_data[0] == 'a')
     	HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_15);
-    for(int i = 0; i < N_SAMPLES; ++i){
-		  HAL_Delay(10);
-		  HAL_DAC_SetValue(&hdac, DAC_CHANNEL_1, DAC_ALIGN_12B_R, sine_val[i]);
-	  }
+//    for(int i = 0; i < N_SAMPLES; ++i){
+//		  HAL_Delay(10);
+//		  HAL_DAC_SetValue(&hdac, DAC_CHANNEL_1, DAC_ALIGN_12B_R, sine_val[i]);
+//	  }
+
     
   }
   /* USER CODE END 3 */
@@ -211,7 +218,7 @@ static void MX_DAC_Init(void)
 
   /** DAC channel OUT1 config
   */
-  sConfig.DAC_Trigger = DAC_TRIGGER_T6_TRGO;
+  sConfig.DAC_Trigger = DAC_TRIGGER_T2_TRGO;
   sConfig.DAC_OutputBuffer = DAC_OUTPUTBUFFER_ENABLE;
   if (HAL_DAC_ConfigChannel(&hdac, &sConfig, DAC_CHANNEL_1) != HAL_OK)
   {
@@ -224,40 +231,47 @@ static void MX_DAC_Init(void)
 }
 
 /**
-  * @brief TIM6 Initialization Function
+  * @brief TIM2 Initialization Function
   * @param None
   * @retval None
   */
-static void MX_TIM6_Init(void)
+static void MX_TIM2_Init(void)
 {
 
-  /* USER CODE BEGIN TIM6_Init 0 */
+  /* USER CODE BEGIN TIM2_Init 0 */
 
-  /* USER CODE END TIM6_Init 0 */
+  /* USER CODE END TIM2_Init 0 */
 
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
   TIM_MasterConfigTypeDef sMasterConfig = {0};
 
-  /* USER CODE BEGIN TIM6_Init 1 */
+  /* USER CODE BEGIN TIM2_Init 1 */
 
-  /* USER CODE END TIM6_Init 1 */
-  htim6.Instance = TIM6;
-  htim6.Init.Prescaler = 0;
-  htim6.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim6.Init.Period = 200;
-  htim6.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-  if (HAL_TIM_Base_Init(&htim6) != HAL_OK)
+  /* USER CODE END TIM2_Init 1 */
+  htim2.Instance = TIM2;
+  htim2.Init.Prescaler = 0;
+  htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim2.Init.Period = (84000000/N_SAMPLES) / frequence;
+  htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim2, &sClockSourceConfig) != HAL_OK)
   {
     Error_Handler();
   }
   sMasterConfig.MasterOutputTrigger = TIM_TRGO_UPDATE;
   sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-  if (HAL_TIMEx_MasterConfigSynchronization(&htim6, &sMasterConfig) != HAL_OK)
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
   {
     Error_Handler();
   }
-  /* USER CODE BEGIN TIM6_Init 2 */
+  /* USER CODE BEGIN TIM2_Init 2 */
 
-  /* USER CODE END TIM6_Init 2 */
+  /* USER CODE END TIM2_Init 2 */
 
 }
 
@@ -304,9 +318,9 @@ static void MX_DMA_Init(void)
   __HAL_RCC_DMA1_CLK_ENABLE();
 
   /* DMA interrupt init */
-  /* DMA1_Stream1_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Stream1_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(DMA1_Stream1_IRQn);
+  /* DMA1_Stream5_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Stream5_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream5_IRQn);
 
 }
 

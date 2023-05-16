@@ -3213,8 +3213,8 @@ static HAL_StatusTypeDef UART_WaitOnFlagUntilTimeout(UART_HandleTypeDef *huart, 
 HAL_StatusTypeDef UART_Start_Receive_IT(UART_HandleTypeDef *huart, uint8_t *pData, uint16_t Size)
 {
   huart->pRxBuffPtr = pData;
-  huart->RxXferSize = 0; //Size
-  huart->RxXferCount = 0; //Size
+  huart->RxXferSize = Size;
+  huart->RxXferCount = Size;
 
   huart->ErrorCode = HAL_UART_ERROR_NONE;
   huart->RxState = HAL_UART_STATE_BUSY_RX;

@@ -30,11 +30,11 @@ void calctri (void)
 {
     for (int k=0; k<N_SAMPLES/2; k++)
     {
-        tri_val[k] = ((float)k/(N_SAMPLES/2))*(4096);
+        tri_val[k] = ((float)k/(N_SAMPLES/2))*(4095);
     }
     for (int k=N_SAMPLES/2; k<N_SAMPLES; k++)
     {
-        tri_val[k] = (1-((float)(k-(N_SAMPLES/2)))/(N_SAMPLES/2))*(4096);
+        tri_val[k] = (1-((float)(k-(N_SAMPLES/2)))/(N_SAMPLES/2))*(4095);
     }
 }
 
