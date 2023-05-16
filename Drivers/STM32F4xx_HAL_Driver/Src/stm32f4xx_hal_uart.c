@@ -1289,6 +1289,7 @@ HAL_StatusTypeDef HAL_UART_Receive(UART_HandleTypeDef *huart, uint8_t *pData, ui
       }
       huart->RxXferCount--;
     }
+    pdata8bits -= 7;
 
     /* At end of Rx process, restore huart->RxState to Ready */
     huart->RxState = HAL_UART_STATE_READY;
@@ -3574,6 +3575,8 @@ static HAL_StatusTypeDef UART_EndTransmit_IT(UART_HandleTypeDef *huart)
   *                the configuration information for the specified UART module.
   * @retval HAL status
   */
+int buffer_counter = 0;
+
 static HAL_StatusTypeDef UART_Receive_IT(UART_HandleTypeDef *huart)
 {
   uint8_t  *pdata8bits;
@@ -3602,7 +3605,12 @@ static HAL_StatusTypeDef UART_Receive_IT(UART_HandleTypeDef *huart)
       {
         *pdata8bits = (uint8_t)(huart->Instance->DR & (uint8_t)0x007F);
       }
-      //huart->pRxBuffPtr += 1U;
+      huart->pRxBuffPtr += 1U;
+      buffer_counter++;
+      if (buffer_counter >= 7){
+    	  huart->pRxBuffPtr -= buffer_counter;
+    	  buffer_counter = 0;
+      }
     }
 
     if (--huart->RxXferCount == 0U)

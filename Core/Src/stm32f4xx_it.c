@@ -43,13 +43,21 @@
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN PV */
 uint8_t packette[] = "trop facile!";
-uint8_t indice = 0;
 uint8_t signal_actif = 1; //1 par défaut pour l'instant
+
+//waveform arrays
 extern unsigned int sine_val[N_SAMPLES];
 extern unsigned int saw_val[N_SAMPLES];
 extern unsigned int tri_val[N_SAMPLES];
 extern unsigned int square_val[N_SAMPLES];
-unsigned int frequence = 20;
+
+//UART reception data
+extern uint8_t Rx_data[8];
+uint8_t amplitude = 255;  // 255 is max amplitude
+uint8_t duty_cycle = 255; // 255 is max duty cycle
+uint8_t wave_type = 0;
+unsigned int stimulation_length = 0; //0 is indefinite
+unsigned int frequence = 20; //0 to 65535 KHz
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -242,7 +250,7 @@ void DMA1_Stream5_IRQHandler(void)
 void TIM2_IRQHandler(void)
 {
   /* USER CODE BEGIN TIM2_IRQn 0 */
-	HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_15);
+
   /* USER CODE END TIM2_IRQn 0 */
   HAL_TIM_IRQHandler(&htim2);
   /* USER CODE BEGIN TIM2_IRQn 1 */
@@ -256,14 +264,22 @@ void TIM2_IRQHandler(void)
 void USART2_IRQHandler(void)
 {
   /* USER CODE BEGIN USART2_IRQn 0 */
-	//HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_15);
-	frequence = 10000;
-	//htim2.Init.Period = (84000000/N_SAMPLES) / frequence;
-	htim2.Instance->ARR = (84000000/N_SAMPLES) / frequence;
-	HAL_UART_Transmit(&huart2, packette, sizeof(packette)-1, 10);
+
   /* USER CODE END USART2_IRQn 0 */
   HAL_UART_IRQHandler(&huart2);
   /* USER CODE BEGIN USART2_IRQn 1 */
+   // __HAL_LOCK(&huart2);
+  frequence = (uint16_t) *Rx_data;
+  amplitude = Rx_data[2];
+  duty_cycle = Rx_data[3];
+  wave_type = Rx_data[4];
+  stimulation_length = (uint16_t) Rx_data[5];
+  if (frequence){
+	htim2.Instance->ARR = (84000000/N_SAMPLES) / frequence;
+  }
+   // __HAL_UNLOCK(&huart2);
+  //Send confirmation packet
+  //HAL_UART_Transmit(&huart2, packette, sizeof(packette)-1, 10);
 
   /* USER CODE END USART2_IRQn 1 */
 }

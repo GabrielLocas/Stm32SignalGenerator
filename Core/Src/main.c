@@ -119,7 +119,8 @@ int main(void)
   init_waves();
 
   //Activate UART RX
-  HAL_UART_Receive_IT (&huart2, Rx_data, 10);
+  //HAL_UART_Receive_IT(huart, pData, Size)
+  HAL_UART_Receive_IT (&huart2, Rx_data, 65535);
 
   /* USER CODE END 2 */
 
@@ -134,11 +135,6 @@ int main(void)
     HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_14);
     if(Rx_data[0] == 'a')
     	HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_15);
-//    for(int i = 0; i < N_SAMPLES; ++i){
-//		  HAL_Delay(10);
-//		  HAL_DAC_SetValue(&hdac, DAC_CHANNEL_1, DAC_ALIGN_12B_R, sine_val[i]);
-//	  }
-
     
   }
   /* USER CODE END 3 */
