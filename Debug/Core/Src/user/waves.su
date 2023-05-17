@@ -1,4 +1,4 @@
-../Core/Src/user/waves.c:13:6:calcsin	16	static
-../Core/Src/user/waves.c:21:6:calcsaw	16	static
-../Core/Src/user/waves.c:29:6:calctri	16	static
-../Core/Src/user/waves.c:41:6:calcsquare	16	static
+../Core/Src/user/waves.c:14:6:calcsin	32	static
+../Core/Src/user/waves.c:22:6:calcsaw	24	static
+../Core/Src/user/waves.c:30:6:calctri	24	static
+../Core/Src/user/waves.c:42:6:calcsquare	24	static

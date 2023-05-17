@@ -8,12 +8,12 @@
 #define PI 3.1415926
 #define N_SAMPLES 100
 
-void calcsin(void);
+void calcsin(unsigned int amplitude);
 
-void calcsaw(void);
+void calcsaw(unsigned int amplitude);
 
-void calctri(void);
+void calctri(unsigned int amplitude);
 
-void calcsquare(void);
+void calcsquare(unsigned int amplitude);
 
 #endif //GENERATEURSIGNAUX_WAVES_H

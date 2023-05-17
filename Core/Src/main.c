@@ -53,9 +53,14 @@ extern unsigned int sine_val[N_SAMPLES];
 extern unsigned int saw_val[N_SAMPLES];
 extern unsigned int tri_val[N_SAMPLES];
 extern unsigned int square_val[N_SAMPLES];
+extern unsigned int empty[N_SAMPLES];
 uint8_t Rx_data[8] = {0};  //  creating a buffer of 8 bytes
 uint8_t packet[] = "trop facile!";
 extern unsigned int frequence; // (Hz)
+extern uint8_t amplitude;  // 255 is max amplitude
+extern uint8_t duty_cycle; // 255 is max duty cycle
+extern uint8_t wave_type;
+extern unsigned int stimulation_length; //0 is indefinite
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -71,7 +76,10 @@ static void MX_TIM2_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+	HAL_UART_Receive_IT (&huart2, Rx_data, 7);
+}
 /* USER CODE END 0 */
 
 /**
@@ -108,19 +116,16 @@ int main(void)
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
   //Activate DAC
-  //HAL_DAC_Start(&hdac, DAC_CHANNEL_1);
-  //HAL_DAC_Start_DMA(hdac, Channel, pData, Length, Alignment)
-  HAL_DAC_Start_DMA(&hdac, DAC1_CHANNEL_1, (uint32_t*)tri_val, N_SAMPLES, DAC_ALIGN_12B_R);
+  //HAL_DAC_Start_DMA(&hdac, DAC1_CHANNEL_1, (uint32_t*)sine_val, N_SAMPLES, DAC_ALIGN_12B_R);
 
   //Activate timer for signal generator
   HAL_TIM_Base_Start(&htim2);
 
   //Calculate waveforms
-  init_waves();
+  init_waves(255);
 
   //Activate UART RX
-  //HAL_UART_Receive_IT(huart, pData, Size)
-  HAL_UART_Receive_IT (&huart2, Rx_data, 65535);
+  HAL_UART_Receive_IT (&huart2, Rx_data, 7);
 
   /* USER CODE END 2 */
 
@@ -131,10 +136,14 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    HAL_Delay(1000);
-    HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_14);
-    if(Rx_data[0] == 'a')
-    	HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_15);
+    HAL_Delay(1);
+    //HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_14);
+    //Set frequence
+//    __disable_irq();
+//	  if (frequence){
+//		htim2.Instance->PSC = (42000000/N_SAMPLES) / frequence;
+//	  }
+//	__enable_irq();
     
   }
   /* USER CODE END 3 */
@@ -245,9 +254,9 @@ static void MX_TIM2_Init(void)
 
   /* USER CODE END TIM2_Init 1 */
   htim2.Instance = TIM2;
-  htim2.Init.Prescaler = 0;
+  htim2.Init.Prescaler = (42000000/N_SAMPLES) / frequence;
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim2.Init.Period = (84000000/N_SAMPLES) / frequence;
+  htim2.Init.Period = 1;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
@@ -287,7 +296,7 @@ static void MX_USART2_UART_Init(void)
 
   /* USER CODE END USART2_Init 1 */
   huart2.Instance = USART2;
-  huart2.Init.BaudRate = 9600;
+  huart2.Init.BaudRate = 115200; //9600 avant
   huart2.Init.WordLength = UART_WORDLENGTH_8B;
   huart2.Init.StopBits = UART_STOPBITS_1;
   huart2.Init.Parity = UART_PARITY_NONE;

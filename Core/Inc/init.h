@@ -5,6 +5,6 @@
 #ifndef GENERATEURSIGNAUX_INIT_H
 #define GENERATEURSIGNAUX_INIT_H
 
-void init_waves(void);
+void init_waves(unsigned int amplitude);
 
 #endif //GENERATEURSIGNAUX_INIT_H

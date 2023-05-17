@@ -23,6 +23,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "../Inc/waves.h"
+#include "../Inc/init.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -50,6 +51,7 @@ extern unsigned int sine_val[N_SAMPLES];
 extern unsigned int saw_val[N_SAMPLES];
 extern unsigned int tri_val[N_SAMPLES];
 extern unsigned int square_val[N_SAMPLES];
+extern unsigned int empty[N_SAMPLES];
 
 //UART reception data
 extern uint8_t Rx_data[8];
@@ -268,19 +270,39 @@ void USART2_IRQHandler(void)
   /* USER CODE END USART2_IRQn 0 */
   HAL_UART_IRQHandler(&huart2);
   /* USER CODE BEGIN USART2_IRQn 1 */
-   // __HAL_LOCK(&huart2);
-  frequence = (uint16_t) *Rx_data;
+
+  //Get values from Rx buffer
+  frequence = Rx_data[0] << 8 | Rx_data[1];
   amplitude = Rx_data[2];
   duty_cycle = Rx_data[3];
   wave_type = Rx_data[4];
   stimulation_length = (uint16_t) Rx_data[5];
-  if (frequence){
-	htim2.Instance->ARR = (84000000/N_SAMPLES) / frequence;
-  }
-   // __HAL_UNLOCK(&huart2);
-  //Send confirmation packet
-  //HAL_UART_Transmit(&huart2, packette, sizeof(packette)-1, 10);
 
+  //Set frequence
+  if (frequence){
+	htim2.Instance->PSC = (42000000/N_SAMPLES) / frequence;
+  }
+
+  //Set wave_type
+  HAL_DAC_Stop_DMA(&hdac, DAC_CHANNEL_1);
+  switch (wave_type){
+  	  case 0:
+  		  HAL_DAC_Start_DMA(&hdac, DAC1_CHANNEL_1, (uint32_t*)sine_val, N_SAMPLES, DAC_ALIGN_12B_R);
+  		  break;
+  	  case 1:
+		  HAL_DAC_Start_DMA(&hdac, DAC1_CHANNEL_1, (uint32_t*)tri_val, N_SAMPLES, DAC_ALIGN_12B_R);
+		  break;
+  	  case 2:
+		  HAL_DAC_Start_DMA(&hdac, DAC1_CHANNEL_1, (uint32_t*)square_val, N_SAMPLES, DAC_ALIGN_12B_R);
+		  break;
+  	  case 3:
+		  HAL_DAC_Start_DMA(&hdac, DAC1_CHANNEL_1, (uint32_t*)saw_val, N_SAMPLES, DAC_ALIGN_12B_R);
+		  break;
+  	  default:
+  		//Nothing
+  		  break;
+  }
+  //HAL_UART_Transmit(&huart2, packette, sizeof(packette)-1, 10);
   /* USER CODE END USART2_IRQn 1 */
 }
 
