@@ -45,22 +45,16 @@ DAC_HandleTypeDef hdac;
 DMA_HandleTypeDef hdma_dac1;
 
 TIM_HandleTypeDef htim2;
+TIM_HandleTypeDef htim3;
+TIM_HandleTypeDef htim4;
 
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
-extern unsigned int sine_val[N_SAMPLES];
-extern unsigned int saw_val[N_SAMPLES];
-extern unsigned int tri_val[N_SAMPLES];
-extern unsigned int square_val[N_SAMPLES];
-extern unsigned int empty[N_SAMPLES];
-uint8_t Rx_data[8] = {0};  //  creating a buffer of 8 bytes
+uint8_t Rx_data[PACKET_SIZE] = {0};
 uint8_t packet[] = "trop facile!";
-extern unsigned int frequence; // (Hz)
-extern uint8_t amplitude;  // 255 is max amplitude
-extern uint8_t duty_cycle; // 255 is max duty cycle
-extern uint8_t wave_type;
-extern unsigned int stimulation_length; //0 is indefinite
+extern unsigned int frequence; // pitch (Hz)
+extern uint8_t stim_freq; // pitch (Hz)
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -70,6 +64,8 @@ static void MX_DMA_Init(void);
 static void MX_DAC_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_TIM2_Init(void);
+static void MX_TIM3_Init(void);
+static void MX_TIM4_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -78,7 +74,7 @@ static void MX_TIM2_Init(void);
 /* USER CODE BEGIN 0 */
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
-	HAL_UART_Receive_IT (&huart2, Rx_data, 7);
+	HAL_UART_Receive_IT (&huart2, Rx_data, PACKET_SIZE);
 }
 /* USER CODE END 0 */
 
@@ -114,18 +110,23 @@ int main(void)
   MX_DAC_Init();
   MX_USART2_UART_Init();
   MX_TIM2_Init();
+  MX_TIM3_Init();
+  MX_TIM4_Init();
   /* USER CODE BEGIN 2 */
   //Activate DAC
   //HAL_DAC_Start_DMA(&hdac, DAC1_CHANNEL_1, (uint32_t*)sine_val, N_SAMPLES, DAC_ALIGN_12B_R);
 
-  //Activate timer for signal generator
+  //Activate timer for signal generator (pitch)
   HAL_TIM_Base_Start(&htim2);
+
+  //Activate timer for stimulation frequency
+  HAL_TIM_Base_Start_IT(&htim3);
 
   //Calculate waveforms
   init_waves(255);
 
   //Activate UART RX
-  HAL_UART_Receive_IT (&huart2, Rx_data, 7);
+  HAL_UART_Receive_IT (&huart2, Rx_data, PACKET_SIZE);
 
   /* USER CODE END 2 */
 
@@ -136,15 +137,8 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    HAL_Delay(1);
-    //HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_14);
-    //Set frequence
-//    __disable_irq();
-//	  if (frequence){
-//		htim2.Instance->PSC = (42000000/N_SAMPLES) / frequence;
-//	  }
-//	__enable_irq();
-    
+    HAL_Delay(1000);
+    HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_15);
   }
   /* USER CODE END 3 */
 }
@@ -281,6 +275,96 @@ static void MX_TIM2_Init(void)
 }
 
 /**
+  * @brief TIM3 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM3_Init(void)
+{
+
+  /* USER CODE BEGIN TIM3_Init 0 */
+
+  /* USER CODE END TIM3_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM3_Init 1 */
+
+  /* USER CODE END TIM3_Init 1 */
+  htim3.Instance = TIM3;
+  htim3.Init.Prescaler = 10500/stim_freq;
+  htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim3.Init.Period = 4000-1;
+  htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim3, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM3_Init 2 */
+
+  /* USER CODE END TIM3_Init 2 */
+
+}
+
+/**
+  * @brief TIM4 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM4_Init(void)
+{
+
+  /* USER CODE BEGIN TIM4_Init 0 */
+
+  /* USER CODE END TIM4_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM4_Init 1 */
+
+  /* USER CODE END TIM4_Init 1 */
+  htim4.Instance = TIM4;
+  htim4.Init.Prescaler = 0;
+  htim4.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim4.Init.Period = 65535;
+  htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim4.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim4) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim4, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim4, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM4_Init 2 */
+
+  /* USER CODE END TIM4_Init 2 */
+
+}
+
+/**
   * @brief USART2 Initialization Function
   * @param None
   * @retval None
@@ -296,7 +380,7 @@ static void MX_USART2_UART_Init(void)
 
   /* USER CODE END USART2_Init 1 */
   huart2.Instance = USART2;
-  huart2.Init.BaudRate = 115200; //9600 avant
+  huart2.Init.BaudRate = 115200;
   huart2.Init.WordLength = UART_WORDLENGTH_8B;
   huart2.Init.StopBits = UART_STOPBITS_1;
   huart2.Init.Parity = UART_PARITY_NONE;

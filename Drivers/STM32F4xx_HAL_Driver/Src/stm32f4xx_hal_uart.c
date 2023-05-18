@@ -3756,4 +3756,3 @@ static void UART_SetConfig(UART_HandleTypeDef *huart)
 /**
   * @}
   */
-

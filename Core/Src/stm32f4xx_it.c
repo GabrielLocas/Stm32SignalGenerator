@@ -55,7 +55,7 @@ extern unsigned int empty[N_SAMPLES];
 
 //UART reception data
 extern uint8_t Rx_data[8];
-uint8_t amplitude = 255;  // 255 is max amplitude
+uint8_t stim_freq = 1;  // 0 - 255 Hz
 uint8_t duty_cycle = 255; // 255 is max duty cycle
 uint8_t wave_type = 0;
 unsigned int stimulation_length = 0; //0 is indefinite
@@ -76,6 +76,8 @@ unsigned int frequence = 20; //0 to 65535 KHz
 extern DMA_HandleTypeDef hdma_dac1;
 extern DAC_HandleTypeDef hdac;
 extern TIM_HandleTypeDef htim2;
+extern TIM_HandleTypeDef htim3;
+extern TIM_HandleTypeDef htim4;
 extern UART_HandleTypeDef huart2;
 /* USER CODE BEGIN EV */
 
@@ -261,6 +263,63 @@ void TIM2_IRQHandler(void)
 }
 
 /**
+  * @brief This function handles TIM3 global interrupt.
+  */
+void TIM3_IRQHandler(void)
+{
+  /* USER CODE BEGIN TIM3_IRQn 0 */
+
+  /* USER CODE END TIM3_IRQn 0 */
+  HAL_TIM_IRQHandler(&htim3);
+  /* USER CODE BEGIN TIM3_IRQn 1 */
+
+  HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_14);
+
+//  if (stim_freq){
+//     htim3.Instance->PSC = 10500/stim_freq;
+//  }
+  HAL_TIM_Base_Stop(&htim2);
+  if(HAL_GPIO_ReadPin(GPIOD, GPIO_PIN_14)){
+	  switch (wave_type){
+		  case 0:
+			  HAL_DAC_Start_DMA(&hdac, DAC1_CHANNEL_1, (uint32_t*)sine_val, N_SAMPLES, DAC_ALIGN_12B_R);
+			  break;
+		  case 1:
+			  HAL_DAC_Start_DMA(&hdac, DAC1_CHANNEL_1, (uint32_t*)tri_val, N_SAMPLES, DAC_ALIGN_12B_R);
+			  break;
+		  case 2:
+			  HAL_DAC_Start_DMA(&hdac, DAC1_CHANNEL_1, (uint32_t*)square_val, N_SAMPLES, DAC_ALIGN_12B_R);
+			  break;
+		  case 3:
+			  HAL_DAC_Start_DMA(&hdac, DAC1_CHANNEL_1, (uint32_t*)saw_val, N_SAMPLES, DAC_ALIGN_12B_R);
+			  break;
+		  default:
+			  //Nothing
+			  break;
+	    }
+	  HAL_TIM_Base_Start(&htim2);
+  }
+  else {
+	  HAL_DAC_Stop_DMA(&hdac, DAC_CHANNEL_1);
+  }
+  /* USER CODE END TIM3_IRQn 1 */
+}
+
+/**
+  * @brief This function handles TIM4 global interrupt.
+  */
+void TIM4_IRQHandler(void)
+{
+  /* USER CODE BEGIN TIM4_IRQn 0 */
+
+  /* USER CODE END TIM4_IRQn 0 */
+  HAL_TIM_IRQHandler(&htim4);
+  /* USER CODE BEGIN TIM4_IRQn 1 */
+
+  /* USER CODE END TIM4_IRQn 1 */
+}
+
+/**
   * @brief This function handles USART2 global interrupt.
   */
 void USART2_IRQHandler(void)
@@ -271,53 +330,58 @@ void USART2_IRQHandler(void)
   HAL_UART_IRQHandler(&huart2);
   /* USER CODE BEGIN USART2_IRQn 1 */
 
-  //Get values from Rx buffer
-  frequence = Rx_data[0] << 8 | Rx_data[1];
-  amplitude = Rx_data[2];
-  duty_cycle = Rx_data[3];
-  wave_type = Rx_data[4];
-  stimulation_length = (uint16_t) Rx_data[5];
+  //STOOOPPP!!!
+  //__disable_irq();
+  //NVIC_DisableIRQ(TIM2_IRQn);
+  HAL_DAC_Stop_DMA(&hdac, DAC_CHANNEL_1);
+  HAL_TIM_Base_Stop(&htim2);
+  HAL_TIM_Base_Stop_IT(&htim3);
 
-  //Set frequence
+  //Get values from Rx buffer
+  wave_type = Rx_data[0];
+  frequence = Rx_data[1] << 8 | Rx_data[2];
+  stim_freq = Rx_data[3];
+  //duty_cycle = Rx_data[3];
+  //stimulation_length = (uint16_t) Rx_data[5];
+
+  //Set pitch
   if (frequence){
 	htim2.Instance->PSC = (42000000/N_SAMPLES) / frequence;
   }
 
-  //Set wave_type
-  HAL_DAC_Stop_DMA(&hdac, DAC_CHANNEL_1);
-  switch (wave_type){
-  	  case 0:
-  		  HAL_DAC_Start_DMA(&hdac, DAC1_CHANNEL_1, (uint32_t*)sine_val, N_SAMPLES, DAC_ALIGN_12B_R);
-  		  break;
-  	  case 1:
-		  HAL_DAC_Start_DMA(&hdac, DAC1_CHANNEL_1, (uint32_t*)tri_val, N_SAMPLES, DAC_ALIGN_12B_R);
-		  break;
-  	  case 2:
-		  HAL_DAC_Start_DMA(&hdac, DAC1_CHANNEL_1, (uint32_t*)square_val, N_SAMPLES, DAC_ALIGN_12B_R);
-		  break;
-  	  case 3:
-		  HAL_DAC_Start_DMA(&hdac, DAC1_CHANNEL_1, (uint32_t*)saw_val, N_SAMPLES, DAC_ALIGN_12B_R);
-		  break;
-  	  default:
-  		//Nothing
-  		  break;
+  //Set stimulation frequency
+  if (stim_freq){
+	  htim3.Instance->PSC = 10500/stim_freq;
   }
+
+  //Set wave_type
+//  HAL_DAC_Stop_DMA(&hdac, DAC_CHANNEL_1);
+//  switch (wave_type){
+//  	  case 0:
+//  		  HAL_DAC_Start_DMA(&hdac, DAC1_CHANNEL_1, (uint32_t*)sine_val, N_SAMPLES, DAC_ALIGN_12B_R);
+//  		  break;
+//  	  case 1:
+//		  HAL_DAC_Start_DMA(&hdac, DAC1_CHANNEL_1, (uint32_t*)tri_val, N_SAMPLES, DAC_ALIGN_12B_R);
+//		  break;
+//  	  case 2:
+//		  HAL_DAC_Start_DMA(&hdac, DAC1_CHANNEL_1, (uint32_t*)square_val, N_SAMPLES, DAC_ALIGN_12B_R);
+//		  break;
+//  	  case 3:
+//		  HAL_DAC_Start_DMA(&hdac, DAC1_CHANNEL_1, (uint32_t*)saw_val, N_SAMPLES, DAC_ALIGN_12B_R);
+//		  break;
+//  	  default:
+//  		//Nothing
+//  		  break;
+//  }
+
+  //GOOOOOOOOOOOO!!!
+  HAL_TIM_Base_Start(&htim2);
+  HAL_TIM_Base_Start_IT(&htim3);
+  //NVIC_EnableIRQ(TIM2_IRQn);
+  //__enable_irq();
+
   //HAL_UART_Transmit(&huart2, packette, sizeof(packette)-1, 10);
   /* USER CODE END USART2_IRQn 1 */
-}
-
-/**
-  * @brief This function handles TIM6 global interrupt, DAC1 and DAC2 underrun error interrupts.
-  */
-void TIM6_DAC_IRQHandler(void)
-{
-  /* USER CODE BEGIN TIM6_DAC_IRQn 0 */
-
-  /* USER CODE END TIM6_DAC_IRQn 0 */
-  HAL_DAC_IRQHandler(&hdac);
-  /* USER CODE BEGIN TIM6_DAC_IRQn 1 */
-
-  /* USER CODE END TIM6_DAC_IRQn 1 */
 }
 
 /* USER CODE BEGIN 1 */
