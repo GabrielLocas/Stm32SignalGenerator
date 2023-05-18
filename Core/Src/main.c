@@ -54,7 +54,16 @@ UART_HandleTypeDef huart2;
 uint8_t Rx_data[PACKET_SIZE] = {0};
 uint8_t packet[] = "trop facile!";
 extern unsigned int frequence; // pitch (Hz)
-extern uint8_t stim_freq; // pitch (Hz)
+extern uint8_t stim_freq; // stim frequency (Hz)
+extern uint8_t duty_cycle;
+
+extern unsigned int sine_val[N_SAMPLES];
+extern unsigned int saw_val[N_SAMPLES];
+extern unsigned int tri_val[N_SAMPLES];
+extern unsigned int square_val[N_SAMPLES];
+
+extern uint8_t wave_type;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -75,6 +84,42 @@ static void MX_TIM4_Init(void);
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
 	HAL_UART_Receive_IT (&huart2, Rx_data, PACKET_SIZE);
+}
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+//    if(GPIO_Pin == GPIO_PIN_13) {
+//        HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET);
+//    } else {
+//        __NOP();
+//    }
+	HAL_TIM_Base_Stop(&htim2);
+	HAL_TIM_Base_Stop_IT(&htim3);
+    if(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_1)){
+        switch (wave_type){
+            case 0:
+                HAL_DAC_Start_DMA(&hdac, DAC1_CHANNEL_1, (uint32_t*)sine_val, N_SAMPLES, DAC_ALIGN_12B_R);
+                break;
+            case 1:
+                HAL_DAC_Start_DMA(&hdac, DAC1_CHANNEL_1, (uint32_t*)tri_val, N_SAMPLES, DAC_ALIGN_12B_R);
+                break;
+            case 2:
+                HAL_DAC_Start_DMA(&hdac, DAC1_CHANNEL_1, (uint32_t*)square_val, N_SAMPLES, DAC_ALIGN_12B_R);
+                break;
+            case 3:
+                HAL_DAC_Start_DMA(&hdac, DAC1_CHANNEL_1, (uint32_t*)saw_val, N_SAMPLES, DAC_ALIGN_12B_R);
+                break;
+            default:
+                //Nothing
+                break;
+        }
+        HAL_TIM_Base_Start(&htim2);
+    }
+    else {
+        HAL_DAC_Stop_DMA(&hdac, DAC_CHANNEL_1);
+    }
+    HAL_TIM_Base_Start(&htim2);
+    HAL_TIM_Base_Start_IT(&htim3);
 }
 /* USER CODE END 0 */
 
@@ -121,6 +166,10 @@ int main(void)
 
   //Activate timer for stimulation frequency
   HAL_TIM_Base_Start_IT(&htim3);
+  HAL_TIM_Base_Start_IT(&htim4);
+
+  //Activate PWM for duty cycle
+  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
 
   //Calculate waveforms
   init_waves(255);
@@ -288,6 +337,7 @@ static void MX_TIM3_Init(void)
 
   TIM_ClockConfigTypeDef sClockSourceConfig = {0};
   TIM_MasterConfigTypeDef sMasterConfig = {0};
+  TIM_OC_InitTypeDef sConfigOC = {0};
 
   /* USER CODE BEGIN TIM3_Init 1 */
 
@@ -307,15 +357,28 @@ static void MX_TIM3_Init(void)
   {
     Error_Handler();
   }
+  if (HAL_TIM_PWM_Init(&htim3) != HAL_OK)
+  {
+    Error_Handler();
+  }
   sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
   sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
   if (HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig) != HAL_OK)
   {
     Error_Handler();
   }
+  sConfigOC.OCMode = TIM_OCMODE_PWM1;
+  sConfigOC.Pulse = (4000*duty_cycle)/255;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+  {
+    Error_Handler();
+  }
   /* USER CODE BEGIN TIM3_Init 2 */
 
   /* USER CODE END TIM3_Init 2 */
+  HAL_TIM_MspPostInit(&htim3);
 
 }
 
@@ -425,10 +488,17 @@ static void MX_GPIO_Init(void)
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOH_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
+  __HAL_RCC_GPIOB_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOD, LED_ROUGE_Pin|LED_BLEU_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : PB1 */
+  GPIO_InitStruct.Pin = GPIO_PIN_1;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /*Configure GPIO pins : LED_ROUGE_Pin LED_BLEU_Pin */
   GPIO_InitStruct.Pin = LED_ROUGE_Pin|LED_BLEU_Pin;
@@ -436,6 +506,10 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI1_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI1_IRQn);
 
 }
 

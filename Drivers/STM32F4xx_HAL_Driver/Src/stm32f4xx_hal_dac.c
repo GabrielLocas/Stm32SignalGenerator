@@ -1338,3 +1338,4 @@ void DAC_DMAErrorCh1(DMA_HandleTypeDef *hdma)
 /**
   * @}
   */
+
