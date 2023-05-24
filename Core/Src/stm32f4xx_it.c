@@ -323,7 +323,7 @@ void USART2_IRQHandler(void)
 
   //Set stimulation frequency
   if (stim_freq){
-	  htim3.Instance->PSC = 10500/stim_freq;
+	  htim3.Instance->PSC = 21000/stim_freq;
   }
 
   //Set duty cycle

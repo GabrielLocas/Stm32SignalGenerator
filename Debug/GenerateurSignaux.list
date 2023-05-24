@@ -1752,11 +1752,11 @@ static void MX_TIM3_Init(void)
  8001170:	4b36      	ldr	r3, [pc, #216]	; (800124c <MX_TIM3_Init+0x10c>)
  8001172:	4a37      	ldr	r2, [pc, #220]	; (8001250 <MX_TIM3_Init+0x110>)
  8001174:	601a      	str	r2, [r3, #0]
-  htim3.Init.Prescaler = 10500/stim_freq;
+  htim3.Init.Prescaler = 21000/stim_freq;
  8001176:	4b37      	ldr	r3, [pc, #220]	; (8001254 <MX_TIM3_Init+0x114>)
  8001178:	781b      	ldrb	r3, [r3, #0]
  800117a:	461a      	mov	r2, r3
- 800117c:	f642 1304 	movw	r3, #10500	; 0x2904
+ 800117c:	f245 2308 	movw	r3, #21000	; 0x5208
  8001180:	fb93 f3f2 	sdiv	r3, r3, r2
  8001184:	461a      	mov	r2, r3
  8001186:	4b31      	ldr	r3, [pc, #196]	; (800124c <MX_TIM3_Init+0x10c>)
@@ -3039,11 +3039,11 @@ void USART2_IRQHandler(void)
  8001842:	781b      	ldrb	r3, [r3, #0]
  8001844:	2b00      	cmp	r3, #0
  8001846:	d009      	beq.n	800185c <USART2_IRQHandler+0x7c>
-	  htim3.Instance->PSC = 10500/stim_freq;
+	  htim3.Instance->PSC = 21000/stim_freq;
  8001848:	4b18      	ldr	r3, [pc, #96]	; (80018ac <USART2_IRQHandler+0xcc>)
  800184a:	781b      	ldrb	r3, [r3, #0]
  800184c:	461a      	mov	r2, r3
- 800184e:	f642 1304 	movw	r3, #10500	; 0x2904
+ 800184e:	f245 2308 	movw	r3, #21000	; 0x5208
  8001852:	fb93 f2f2 	sdiv	r2, r3, r2
  8001856:	4b11      	ldr	r3, [pc, #68]	; (800189c <USART2_IRQHandler+0xbc>)
  8001858:	681b      	ldr	r3, [r3, #0]
