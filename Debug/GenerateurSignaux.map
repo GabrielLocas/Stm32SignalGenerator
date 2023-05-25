@@ -3714,10 +3714,7 @@ LOAD c:/st/stm32cubeide_1.11.0/stm32cubeide/plugins/com.st.stm32cube.ide.mcu.ext
  .data.stim_freq
                 0x0000000020000000        0x1 ./Core/Src/stm32f4xx_it.o
                 0x0000000020000000                stim_freq
- .data.duty_cycle
-                0x0000000020000001        0x1 ./Core/Src/stm32f4xx_it.o
-                0x0000000020000001                duty_cycle
- *fill*         0x0000000020000002        0x2 
+ *fill*         0x0000000020000001        0x3 
  .data.frequence
                 0x0000000020000004        0x4 ./Core/Src/stm32f4xx_it.o
                 0x0000000020000004                frequence
@@ -3768,10 +3765,13 @@ LOAD c:/st/stm32cubeide_1.11.0/stm32cubeide/plugins/com.st.stm32cube.ide.mcu.ext
                 0x0000000020000134                huart2
  .bss.Rx_data   0x0000000020000178        0x5 ./Core/Src/main.o
                 0x0000000020000178                Rx_data
- .bss.wave_type
+ .bss.duty_cycle
                 0x000000002000017d        0x1 ./Core/Src/stm32f4xx_it.o
-                0x000000002000017d                wave_type
- *fill*         0x000000002000017e        0x2 
+                0x000000002000017d                duty_cycle
+ .bss.wave_type
+                0x000000002000017e        0x1 ./Core/Src/stm32f4xx_it.o
+                0x000000002000017e                wave_type
+ *fill*         0x000000002000017f        0x1 
  .bss.sine_val  0x0000000020000180      0x190 ./Core/Src/user/waves.o
                 0x0000000020000180                sine_val
  .bss.saw_val   0x0000000020000310      0x190 ./Core/Src/user/waves.o

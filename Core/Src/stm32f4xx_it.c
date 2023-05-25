@@ -56,7 +56,7 @@ extern unsigned int empty[N_SAMPLES];
 //UART reception data
 extern uint8_t Rx_data[PACKET_SIZE];
 uint8_t stim_freq = 1;  // 0 - 255 Hz
-uint8_t duty_cycle = 127; // 255 is max duty cycle
+uint8_t duty_cycle = 0; // 255 is max duty cycle
 uint8_t wave_type = 0;
 unsigned int stimulation_length = 0; //0 is indefinite
 unsigned int frequence = 20; //0 to 65535 KHz
