@@ -43,23 +43,17 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN PV */
-uint8_t packette[] = "trop facile!";
-uint8_t signal_actif = 1; //1 par défaut pour l'instant
-
-//waveform arrays
-extern unsigned int sine_val[N_SAMPLES];
-extern unsigned int saw_val[N_SAMPLES];
-extern unsigned int tri_val[N_SAMPLES];
-extern unsigned int square_val[N_SAMPLES];
-extern unsigned int empty[N_SAMPLES];
 
 //UART reception data
 extern uint8_t Rx_data[PACKET_SIZE];
+
+//Default parameters
 uint8_t stim_freq = 1;  // 0 - 255 Hz
 uint8_t duty_cycle = 0; // 255 is max duty cycle
 uint8_t wave_type = 0;
 unsigned int stimulation_length = 0; //0 is indefinite
 unsigned int frequence = 20; //0 to 65535 KHz
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -304,8 +298,6 @@ void USART2_IRQHandler(void)
   /* USER CODE BEGIN USART2_IRQn 1 */
 
   //STOOOPPP!!!
-  //__disable_irq();
-  //NVIC_DisableIRQ(TIM2_IRQn);
   HAL_DAC_Stop_DMA(&hdac, DAC_CHANNEL_1);
   HAL_TIM_Base_Stop(&htim2);
   HAL_TIM_Base_Stop_IT(&htim3);
@@ -332,10 +324,7 @@ void USART2_IRQHandler(void)
   //GOOOOOOOOOOOO!!!
   HAL_TIM_Base_Start(&htim2);
   HAL_TIM_Base_Start_IT(&htim3);
-  //NVIC_EnableIRQ(TIM2_IRQn);
-  //__enable_irq();
 
-  //HAL_UART_Transmit(&huart2, packette, sizeof(packette)-1, 10);
   /* USER CODE END USART2_IRQn 1 */
 }
 

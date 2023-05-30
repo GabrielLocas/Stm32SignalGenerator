@@ -52,7 +52,6 @@ UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
 uint8_t Rx_data[PACKET_SIZE] = {0};
-uint8_t packet[] = "trop facile!";
 extern unsigned int frequence; // piRxtch (Hz)
 extern uint8_t stim_freq; // stim frequency (Hz)
 extern uint8_t duty_cycle;
@@ -87,11 +86,6 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
-//    if(GPIO_Pin == GPIO_PIN_13) {
-//        HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET);
-//    } else {
-//        __NOP();
-//    }
 	HAL_TIM_Base_Stop(&htim2);
 	HAL_TIM_Base_Stop_IT(&htim3);
     if(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_1)){
@@ -156,8 +150,6 @@ int main(void)
   MX_TIM2_Init();
   MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
-  //Activate DAC
-  //HAL_DAC_Start_DMA(&hdac, DAC1_CHANNEL_1, (uint32_t*)sine_val, N_SAMPLES, DAC_ALIGN_12B_R);
 
   //Activate timer for signal generator (pitch)
   HAL_TIM_Base_Start(&htim2);
@@ -169,7 +161,7 @@ int main(void)
   HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
 
   //Calculate waveforms
-  init_waves(255);
+  init_waves(255); //255 is max amplitude
 
   //Activate UART RX
   HAL_UART_Receive_IT (&huart2, Rx_data, PACKET_SIZE);
@@ -184,7 +176,7 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
     HAL_Delay(1000);
-    HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_15);
+    HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_15); //Control LED
   }
   /* USER CODE END 3 */
 }
