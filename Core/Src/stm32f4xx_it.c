@@ -49,11 +49,10 @@ extern uint8_t Rx_data[PACKET_SIZE];
 
 //Default parameters
 uint8_t stim_freq = 1;  // 0 - 255 Hz
-uint8_t duty_cycle = 0; // 255 is max duty cycle
+uint8_t duty_cycle = 127; // 255 is max duty cycle
 uint8_t wave_type = 0;
-unsigned int stimulation_length = 0; //0 is indefinite
 unsigned int frequence = 20; //0 to 65535 KHz
-
+uint8_t randomOn = 0; //0 is off, anything else is random
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -307,6 +306,7 @@ void USART2_IRQHandler(void)
   frequence = Rx_data[1] << 8 | Rx_data[2];
   stim_freq = Rx_data[3];
   duty_cycle = Rx_data[4];
+  randomOn = Rx_data[5];
 
   //Set pitch
   if (frequence){

@@ -21,6 +21,8 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include <time.h>
+#include <stdlib.h>
 #include "../Inc/init.h"
 #include "../Inc/waves.h"
 #include "stm32f4xx_it.h"
@@ -55,6 +57,7 @@ uint8_t Rx_data[PACKET_SIZE] = {0};
 extern unsigned int frequence; // piRxtch (Hz)
 extern uint8_t stim_freq; // stim frequency (Hz)
 extern uint8_t duty_cycle;
+extern uint8_t randomOn;
 
 extern unsigned int sine_val[N_SAMPLES];
 extern unsigned int saw_val[N_SAMPLES];
@@ -62,6 +65,8 @@ extern unsigned int tri_val[N_SAMPLES];
 extern unsigned int square_val[N_SAMPLES];
 
 extern uint8_t wave_type;
+
+int r;
 
 /* USER CODE END PV */
 
@@ -105,6 +110,10 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
             default:
                 //Nothing
                 break;
+        }
+        if(randomOn){
+			r = rand() % 256;
+			htim3.Instance->CCR1 = (4000*r)/255;
         }
         HAL_TIM_Base_Start(&htim2);
     }
@@ -165,6 +174,9 @@ int main(void)
 
   //Activate UART RX
   HAL_UART_Receive_IT (&huart2, Rx_data, PACKET_SIZE);
+
+  //Initialize random
+  srand(time(NULL));
 
   /* USER CODE END 2 */
 

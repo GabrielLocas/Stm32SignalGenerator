@@ -27,7 +27,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#define PACKET_SIZE 5
+#define PACKET_SIZE 6
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
