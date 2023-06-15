@@ -46,6 +46,8 @@
 DAC_HandleTypeDef hdac;
 DMA_HandleTypeDef hdma_dac1;
 
+I2C_HandleTypeDef hi2c2;
+
 TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim3;
 TIM_HandleTypeDef htim4;
@@ -58,6 +60,8 @@ extern unsigned int frequence; // piRxtch (Hz)
 extern uint8_t stim_freq; // stim frequency (Hz)
 extern uint8_t duty_cycle;
 extern uint8_t randomOn;
+extern uint8_t sound_intensity;
+extern uint8_t light_intensity;
 
 extern unsigned int sine_val[N_SAMPLES];
 extern unsigned int saw_val[N_SAMPLES];
@@ -78,6 +82,8 @@ static void MX_DAC_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_TIM3_Init(void);
+static void MX_TIM4_Init(void);
+static void MX_I2C2_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -116,9 +122,13 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 			htim3.Instance->CCR1 = (4000*r)/255;
         }
         HAL_TIM_Base_Start(&htim2);
+        htim4.Instance->CCR1 = (4000*light_intensity)/255;
+        //HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1);
     }
     else {
         HAL_DAC_Stop_DMA(&hdac, DAC_CHANNEL_1);
+        htim4.Instance->CCR1 = 0;
+        //HAL_TIM_PWM_Stop(&htim4, TIM_CHANNEL_1);
     }
     HAL_TIM_Base_Start(&htim2);
     HAL_TIM_Base_Start_IT(&htim3);
@@ -158,16 +168,24 @@ int main(void)
   MX_USART2_UART_Init();
   MX_TIM2_Init();
   MX_TIM3_Init();
+  MX_TIM4_Init();
+  MX_I2C2_Init();
   /* USER CODE BEGIN 2 */
 
   //Activate timer for signal generator (pitch)
   HAL_TIM_Base_Start(&htim2);
 
   //Activate timer for stimulation frequency
-  HAL_TIM_Base_Start_IT(&htim3);
+  //HAL_TIM_Base_Start_IT(&htim3);
 
-  //Activate PWM for duty cycle
+  //Activate PWM for duty cycle of light stimulation
   HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
+
+  //Activate interrupt for TIM4
+  //HAL_TIM_Base_Start_IT(&htim4);
+
+  //Activate PWM for light intensity
+  HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1);
 
   //Calculate waveforms
   init_waves(255); //255 is max amplitude
@@ -280,6 +298,40 @@ static void MX_DAC_Init(void)
 }
 
 /**
+  * @brief I2C2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_I2C2_Init(void)
+{
+
+  /* USER CODE BEGIN I2C2_Init 0 */
+
+  /* USER CODE END I2C2_Init 0 */
+
+  /* USER CODE BEGIN I2C2_Init 1 */
+
+  /* USER CODE END I2C2_Init 1 */
+  hi2c2.Instance = I2C2;
+  hi2c2.Init.ClockSpeed = 100000;
+  hi2c2.Init.DutyCycle = I2C_DUTYCYCLE_2;
+  hi2c2.Init.OwnAddress1 = 0;
+  hi2c2.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
+  hi2c2.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
+  hi2c2.Init.OwnAddress2 = 0;
+  hi2c2.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
+  hi2c2.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
+  if (HAL_I2C_Init(&hi2c2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN I2C2_Init 2 */
+
+  /* USER CODE END I2C2_Init 2 */
+
+}
+
+/**
   * @brief TIM2 Initialization Function
   * @param None
   * @retval None
@@ -384,6 +436,65 @@ static void MX_TIM3_Init(void)
 }
 
 /**
+  * @brief TIM4 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM4_Init(void)
+{
+
+  /* USER CODE BEGIN TIM4_Init 0 */
+
+  /* USER CODE END TIM4_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+  TIM_OC_InitTypeDef sConfigOC = {0};
+
+  /* USER CODE BEGIN TIM4_Init 1 */
+
+  /* USER CODE END TIM4_Init 1 */
+  htim4.Instance = TIM4;
+  htim4.Init.Prescaler = htim3.Init.Prescaler/100;
+  htim4.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim4.Init.Period = 4000-1;;
+  htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim4.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim4) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim4, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_PWM_Init(&htim4) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim4, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sConfigOC.OCMode = TIM_OCMODE_PWM1;
+  sConfigOC.Pulse = 0;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  if (HAL_TIM_PWM_ConfigChannel(&htim4, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM4_Init 2 */
+
+  /* USER CODE END TIM4_Init 2 */
+  HAL_TIM_MspPostInit(&htim4);
+
+}
+
+/**
   * @brief USART2 Initialization Function
   * @param None
   * @retval None
@@ -428,7 +539,6 @@ static void MX_DMA_Init(void)
   /* DMA interrupt init */
   /* DMA1_Stream5_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Stream5_IRQn, 0, 0);
-  //HAL_NVIC_SetPriority(IRQn, PreemptPriority, SubPriority)
   HAL_NVIC_EnableIRQ(DMA1_Stream5_IRQn);
 
 }

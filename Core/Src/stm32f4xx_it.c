@@ -49,10 +49,12 @@ extern uint8_t Rx_data[PACKET_SIZE];
 
 //Default parameters
 uint8_t stim_freq = 1;  // 0 - 255 Hz
-uint8_t duty_cycle = 127; // 255 is max duty cycle
+uint8_t duty_cycle = 0; // 255 is max duty cycle
 uint8_t wave_type = 0;
 unsigned int frequence = 20; //0 to 65535 KHz
 uint8_t randomOn = 0; //0 is off, anything else is random
+uint8_t sound_intensity = 0; //0 to 255
+uint8_t light_intensity = 0; //0 to 255 where 255 is max intensity
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -72,6 +74,7 @@ extern TIM_HandleTypeDef htim2;
 extern TIM_HandleTypeDef htim3;
 extern TIM_HandleTypeDef htim4;
 extern UART_HandleTypeDef huart2;
+extern I2C_HandleTypeDef hi2c2;
 /* USER CODE BEGIN EV */
 
 /* USER CODE END EV */
@@ -286,6 +289,20 @@ void TIM3_IRQHandler(void)
 }
 
 /**
+  * @brief This function handles TIM4 global interrupt.
+  */
+void TIM4_IRQHandler(void)
+{
+  /* USER CODE BEGIN TIM4_IRQn 0 */
+
+  /* USER CODE END TIM4_IRQn 0 */
+  HAL_TIM_IRQHandler(&htim4);
+  /* USER CODE BEGIN TIM4_IRQn 1 */
+
+  /* USER CODE END TIM4_IRQn 1 */
+}
+
+/**
   * @brief This function handles USART2 global interrupt.
   */
 void USART2_IRQHandler(void)
@@ -299,7 +316,7 @@ void USART2_IRQHandler(void)
   //STOOOPPP!!!
   HAL_DAC_Stop_DMA(&hdac, DAC_CHANNEL_1);
   HAL_TIM_Base_Stop(&htim2);
-  HAL_TIM_Base_Stop_IT(&htim3);
+  //HAL_TIM_Base_Stop_IT(&htim3);
 
   //Get values from Rx buffer
   wave_type = Rx_data[0];
@@ -307,6 +324,8 @@ void USART2_IRQHandler(void)
   stim_freq = Rx_data[3];
   duty_cycle = Rx_data[4];
   randomOn = Rx_data[5];
+  sound_intensity = Rx_data[6];
+  light_intensity = Rx_data[7];
 
   //Set pitch
   if (frequence){
@@ -318,12 +337,19 @@ void USART2_IRQHandler(void)
 	  htim3.Instance->PSC = 21000/stim_freq;
   }
 
-  //Set duty cycle
+  //Set duty cycle for light frequency
   htim3.Instance->CCR1 = (4000*duty_cycle)/255;
+
+  //Set intensity for MAX9744 with I2C
+  //HAL_I2C_Master_Transmit(&hi2c2, DevAddress, pData, Size, Timeout);
+  //HAL_I2C_Master_Transmit(&hi2c2, 0b10010010, &sound_intensity, 1, 1);
+
+  //Set frequency for PWM controlling light intensity
+  htim4.Instance->PSC = (htim3.Instance->PSC)/100;
 
   //GOOOOOOOOOOOO!!!
   HAL_TIM_Base_Start(&htim2);
-  HAL_TIM_Base_Start_IT(&htim3);
+  //HAL_TIM_Base_Start_IT(&htim3);
 
   /* USER CODE END USART2_IRQn 1 */
 }
