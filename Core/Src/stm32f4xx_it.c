@@ -24,6 +24,7 @@
 /* USER CODE BEGIN Includes */
 #include "../Inc/waves.h"
 #include "../Inc/init.h"
+#include "../Inc/comm.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -44,17 +45,18 @@
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN PV */
 
-//UART reception data
-extern uint8_t Rx_data[PACKET_SIZE];
+////UART reception data
+//extern uint8_t Rx_data[PACKET_SIZE];
+//
+////Default parameters
+//uint8_t stim_freq = 1;  		// 0 - 255 (INT_MAX) Hz
+//uint8_t duty_cycle = 0; 		// 0 - 255 (INT_MAX) is max duty cycle
+//uint8_t wave_type = 0;			// 0 (sine) 1 (triangle) 2 (square) 3 (saw), anything else produces no sound
+//unsigned int pitch = 440; 		// 0 - 65535 Hz
+//uint8_t randomOn = 0; 			// 0 (off), anything else is random
+//uint8_t sound_intensity = 0; 	// 0 - 255 (INT_MAX)
+//uint8_t light_intensity = 0; 	// 0 - 255 (INT_MAX) where 255 is max intensity
 
-//Default parameters
-uint8_t stim_freq = 1;  // 0 - 255 Hz
-uint8_t duty_cycle = 0; // 255 is max duty cycle
-uint8_t wave_type = 0;
-unsigned int frequence = 20; //0 to 65535 KHz
-uint8_t randomOn = 0; //0 is off, anything else is random
-uint8_t sound_intensity = 0; //0 to 255
-uint8_t light_intensity = 0; //0 to 255 where 255 is max intensity
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -259,50 +261,6 @@ void DMA1_Stream5_IRQHandler(void)
 }
 
 /**
-  * @brief This function handles TIM2 global interrupt.
-  */
-void TIM2_IRQHandler(void)
-{
-  /* USER CODE BEGIN TIM2_IRQn 0 */
-
-  /* USER CODE END TIM2_IRQn 0 */
-  HAL_TIM_IRQHandler(&htim2);
-  /* USER CODE BEGIN TIM2_IRQn 1 */
-
-  /* USER CODE END TIM2_IRQn 1 */
-}
-
-/**
-  * @brief This function handles TIM3 global interrupt.
-  */
-void TIM3_IRQHandler(void)
-{
-  /* USER CODE BEGIN TIM3_IRQn 0 */
-
-  /* USER CODE END TIM3_IRQn 0 */
-  HAL_TIM_IRQHandler(&htim3);
-  /* USER CODE BEGIN TIM3_IRQn 1 */
-
-  HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_14);
-
-  /* USER CODE END TIM3_IRQn 1 */
-}
-
-/**
-  * @brief This function handles TIM4 global interrupt.
-  */
-void TIM4_IRQHandler(void)
-{
-  /* USER CODE BEGIN TIM4_IRQn 0 */
-
-  /* USER CODE END TIM4_IRQn 0 */
-  HAL_TIM_IRQHandler(&htim4);
-  /* USER CODE BEGIN TIM4_IRQn 1 */
-
-  /* USER CODE END TIM4_IRQn 1 */
-}
-
-/**
   * @brief This function handles USART2 global interrupt.
   */
 void USART2_IRQHandler(void)
@@ -313,43 +271,7 @@ void USART2_IRQHandler(void)
   HAL_UART_IRQHandler(&huart2);
   /* USER CODE BEGIN USART2_IRQn 1 */
 
-  //STOOOPPP!!!
-  HAL_DAC_Stop_DMA(&hdac, DAC_CHANNEL_1);
-  HAL_TIM_Base_Stop(&htim2);
-  //HAL_TIM_Base_Stop_IT(&htim3);
-
-  //Get values from Rx buffer
-  wave_type = Rx_data[0];
-  frequence = Rx_data[1] << 8 | Rx_data[2];
-  stim_freq = Rx_data[3];
-  duty_cycle = Rx_data[4];
-  randomOn = Rx_data[5];
-  sound_intensity = Rx_data[6];
-  light_intensity = Rx_data[7];
-
-  //Set pitch
-  if (frequence){
-	htim2.Instance->PSC = (42000000/N_SAMPLES) / frequence;
-  }
-
-  //Set stimulation frequency
-  if (stim_freq){
-	  htim3.Instance->PSC = 21000/stim_freq;
-  }
-
-  //Set duty cycle for light frequency
-  htim3.Instance->CCR1 = (4000*duty_cycle)/255;
-
-  //Set intensity for MAX9744 with I2C
-  //HAL_I2C_Master_Transmit(&hi2c2, DevAddress, pData, Size, Timeout);
-  //HAL_I2C_Master_Transmit(&hi2c2, 0b10010010, &sound_intensity, 1, 1);
-
-  //Set frequency for PWM controlling light intensity
-  htim4.Instance->PSC = (htim3.Instance->PSC)/100;
-
-  //GOOOOOOOOOOOO!!!
-  HAL_TIM_Base_Start(&htim2);
-  //HAL_TIM_Base_Start_IT(&htim3);
+  receiveUARTpacket();
 
   /* USER CODE END USART2_IRQn 1 */
 }

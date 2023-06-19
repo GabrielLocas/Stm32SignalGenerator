@@ -27,7 +27,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#define PACKET_SIZE 8
+
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/

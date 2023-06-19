@@ -5,14 +5,17 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
+../Core/Src/user/comm.c \
 ../Core/Src/user/init.c \
 ../Core/Src/user/waves.c 
 
 OBJS += \
+./Core/Src/user/comm.o \
 ./Core/Src/user/init.o \
 ./Core/Src/user/waves.o 
 
 C_DEPS += \
+./Core/Src/user/comm.d \
 ./Core/Src/user/init.d \
 ./Core/Src/user/waves.d 
 
@@ -24,7 +27,7 @@ Core/Src/user/%.o Core/Src/user/%.su: ../Core/Src/user/%.c Core/Src/user/subdir.
 clean: clean-Core-2f-Src-2f-user
 
 clean-Core-2f-Src-2f-user:
-	-$(RM) ./Core/Src/user/init.d ./Core/Src/user/init.o ./Core/Src/user/init.su ./Core/Src/user/waves.d ./Core/Src/user/waves.o ./Core/Src/user/waves.su
+	-$(RM) ./Core/Src/user/comm.d ./Core/Src/user/comm.o ./Core/Src/user/comm.su ./Core/Src/user/init.d ./Core/Src/user/init.o ./Core/Src/user/init.su ./Core/Src/user/waves.d ./Core/Src/user/waves.o ./Core/Src/user/waves.su
 
 .PHONY: clean-Core-2f-Src-2f-user
 

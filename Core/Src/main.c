@@ -25,6 +25,7 @@
 #include <stdlib.h>
 #include "../Inc/init.h"
 #include "../Inc/waves.h"
+#include "../Inc/comm.h"
 #include "stm32f4xx_it.h"
 /* USER CODE END Includes */
 
@@ -55,14 +56,15 @@ TIM_HandleTypeDef htim4;
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
-uint8_t Rx_data[PACKET_SIZE] = {0};
-extern unsigned int frequence; // piRxtch (Hz)
-extern uint8_t stim_freq; // stim frequency (Hz)
-extern uint8_t duty_cycle;
-extern uint8_t randomOn;
-extern uint8_t sound_intensity;
-extern uint8_t light_intensity;
+extern uint8_t Rx_data[];
+extern unsigned int pitch; 		// pitch (Hz)
+extern uint8_t stim_freq; 		// stim frequency (Hz)
+extern uint8_t duty_cycle;		// stimulation duty cycle
+extern uint8_t randomOn;		// random duty cycle
+extern uint8_t sound_intensity;	// sound intensity
+extern uint8_t light_intensity; // light intensity
 
+//Wave form arrays
 extern unsigned int sine_val[N_SAMPLES];
 extern unsigned int saw_val[N_SAMPLES];
 extern unsigned int tri_val[N_SAMPLES];
@@ -90,15 +92,20 @@ static void MX_I2C2_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+//Callback for UART
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
 	HAL_UART_Receive_IT (&huart2, Rx_data, PACKET_SIZE);
 }
 
+//Callback for external interruption
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
+	// Turn off timer for DAC
 	HAL_TIM_Base_Stop(&htim2);
-	HAL_TIM_Base_Stop_IT(&htim3);
+
+	// Choose wave form for sound
     if(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_1)){
         switch (wave_type){
             case 0:
@@ -117,21 +124,25 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
                 //Nothing
                 break;
         }
+        // Random duty cycle for stimulation
         if(randomOn){
 			r = rand() % 256;
-			htim3.Instance->CCR1 = (4000*r)/255;
+			htim3.Instance->CCR1 = (TIMER_PRESCALER*r)/INT_MAX;
         }
+
+        // Change PWM duty cycle for light intensity
+        htim4.Instance->CCR1 = (TIMER_PRESCALER*light_intensity)/INT_MAX;
+
+        //Activate timer for DAC
         HAL_TIM_Base_Start(&htim2);
-        htim4.Instance->CCR1 = (4000*light_intensity)/255;
-        //HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1);
     }
     else {
+    	// Turn off DAC for sound waves
         HAL_DAC_Stop_DMA(&hdac, DAC_CHANNEL_1);
+
+        // Set PWM to 0 to turn off light
         htim4.Instance->CCR1 = 0;
-        //HAL_TIM_PWM_Stop(&htim4, TIM_CHANNEL_1);
     }
-    HAL_TIM_Base_Start(&htim2);
-    HAL_TIM_Base_Start_IT(&htim3);
 }
 /* USER CODE END 0 */
 
@@ -175,20 +186,14 @@ int main(void)
   //Activate timer for signal generator (pitch)
   HAL_TIM_Base_Start(&htim2);
 
-  //Activate timer for stimulation frequency
-  //HAL_TIM_Base_Start_IT(&htim3);
-
   //Activate PWM for duty cycle of light stimulation
   HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
-
-  //Activate interrupt for TIM4
-  //HAL_TIM_Base_Start_IT(&htim4);
 
   //Activate PWM for light intensity
   HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1);
 
   //Calculate waveforms
-  init_waves(255); //255 is max amplitude
+  init_waves(INT_MAX); //255 is max amplitude
 
   //Activate UART RX
   HAL_UART_Receive_IT (&huart2, Rx_data, PACKET_SIZE);
@@ -350,7 +355,7 @@ static void MX_TIM2_Init(void)
 
   /* USER CODE END TIM2_Init 1 */
   htim2.Instance = TIM2;
-  htim2.Init.Prescaler = (42000000/N_SAMPLES) / frequence;
+  htim2.Init.Prescaler = (42000000/N_SAMPLES) / pitch;
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim2.Init.Period = 1;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
@@ -398,7 +403,7 @@ static void MX_TIM3_Init(void)
   htim3.Instance = TIM3;
   htim3.Init.Prescaler = 21000/stim_freq;
   htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim3.Init.Period = 4000-1;
+  htim3.Init.Period = TIMER_PRESCALER-1;
   htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim3) != HAL_OK)
@@ -421,7 +426,7 @@ static void MX_TIM3_Init(void)
     Error_Handler();
   }
   sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = (4000*duty_cycle)/255;
+  sConfigOC.Pulse = (TIMER_PRESCALER*duty_cycle)/INT_MAX;
   sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
   if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
@@ -455,9 +460,9 @@ static void MX_TIM4_Init(void)
 
   /* USER CODE END TIM4_Init 1 */
   htim4.Instance = TIM4;
-  htim4.Init.Prescaler = htim3.Init.Prescaler/100;
+  htim4.Init.Prescaler = htim3.Init.Prescaler/LIGHT_INTENSITY_PWM_MULTIPLIER;
   htim4.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim4.Init.Period = 4000-1;;
+  htim4.Init.Period = TIMER_PRESCALER-1;;
   htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim4.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim4) != HAL_OK)
