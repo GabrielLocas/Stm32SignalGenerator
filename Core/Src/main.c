@@ -72,6 +72,8 @@ extern unsigned int square_val[N_SAMPLES];
 
 extern uint8_t wave_type;
 
+extern uint8_t i2cFlag;
+
 int r;
 
 /* USER CODE END PV */
@@ -97,6 +99,12 @@ static void MX_I2C2_Init(void);
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
 	HAL_UART_Receive_IT (&huart2, Rx_data, PACKET_SIZE);
+}
+
+//Callback for I2C
+void HAL_I2C_MasterTxCpltCallback (I2C_HandleTypeDef *hi2c){
+	uint8_t tmp[] = {sound_intensity};
+	HAL_I2C_Master_Transmit(&hi2c2, 0b10010010, tmp, 1, 100);
 }
 
 //Callback for external interruption
@@ -212,6 +220,12 @@ int main(void)
     /* USER CODE BEGIN 3 */
     HAL_Delay(1000);
     HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_15); //Control LED
+    if (i2cFlag){
+    	//Set intensity for MAX9744 with I2C
+    	uint8_t tmp[] = {sound_intensity};
+	    HAL_I2C_Master_Transmit(&hi2c2, 0b10010010, tmp, 1, 100);
+	    i2cFlag = 0;
+    }
   }
   /* USER CODE END 3 */
 }

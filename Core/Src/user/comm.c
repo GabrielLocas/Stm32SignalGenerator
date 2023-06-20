@@ -28,6 +28,7 @@ unsigned int pitch = 440; 		// 0 - 65535 Hz
 uint8_t randomOn = 0; 			// 0 (off), anything else is random
 uint8_t sound_intensity = 0; 	// 0 - 255 (INT_MAX)
 uint8_t light_intensity = 0; 	// 0 - 255 (INT_MAX) where 255 is max intensity
+uint8_t i2cFlag = 0;			// flag for knowing when to send i2c packet
 
 void receiveUARTpacket(){
 	// Stop DAC
@@ -59,6 +60,7 @@ void receiveUARTpacket(){
 	  //Set intensity for MAX9744 with I2C
 	  //uint8_t tmp[] = {sound_intensity};
 	  //HAL_I2C_Master_Transmit(&hi2c2, 0b10010010, tmp, 1, 1);
+	  i2cFlag = 1;
 
 	  //Set frequency for PWM controlling light intensity
 	  htim4.Instance->PSC = (htim3.Instance->PSC)/LIGHT_INTENSITY_PWM_MULTIPLIER;
