@@ -218,12 +218,12 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    HAL_Delay(1000);
-    HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_15); //Control LED
+    HAL_Delay(10);
+    //HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_15); //Control LED
     if (i2cFlag){
     	//Set intensity for MAX9744 with I2C
     	uint8_t tmp[] = {sound_intensity};
-	    HAL_I2C_Master_Transmit(&hi2c2, 0b10010010, tmp, 1, 100);
+	    HAL_I2C_Master_Transmit(&hi2c2, 0x96, tmp, 1, 10);
 	    i2cFlag = 0;
     }
   }
