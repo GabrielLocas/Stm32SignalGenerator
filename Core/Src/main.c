@@ -134,8 +134,14 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
         }
         // Random duty cycle for stimulation
         if(randomOn){
-			r = rand() % 256;
-			htim3.Instance->CCR1 = (TIMER_PRESCALER*r)/INT_MAX;
+			r = ((rand() % (2 * stim_freq + 2))/0.3397);
+			//htim3.Instance->CCR1 = (TIMER_PRESCALER*128)/INT_MAX;
+			//Set stimulation frequency
+			if (r < 2){
+				r = ((rand() % (2 * stim_freq + 2))/0.3397);
+			}
+			if (r)
+				htim3.Instance->PSC = 21000/r;
         }
 
         // Change PWM duty cycle for light intensity

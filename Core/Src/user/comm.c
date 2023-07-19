@@ -55,7 +55,9 @@ void receiveUARTpacket(){
 	  }
 
 	  //Set duty cycle for light frequency
-	  htim3.Instance->CCR1 = (TIMER_PRESCALER*duty_cycle)/INT_MAX;
+	  if (!randomOn){
+		  htim3.Instance->CCR1 = (TIMER_PRESCALER*duty_cycle)/INT_MAX;
+	  }
 
 	  //Set intensity for MAX9744 with I2C
 	  //uint8_t tmp[] = {sound_intensity};
